@@ -1,0 +1,32 @@
+[Unit]
+Description=Budget web app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=budget
+Group=budget
+ExecStart=/usr/local/bin/budget -addr :9312 -data /var/lib/budget
+StateDirectory=budget
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=2
+
+# Hardening
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

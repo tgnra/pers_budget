@@ -22,7 +22,7 @@ import (
 var webFS embed.FS
 
 func main() {
-	addr := flag.String("addr", ":8080", "listen address")
+	addr := flag.String("addr", ":9312", "listen address")
 	dataDir := flag.String("data", "data", "directory for account data")
 	tz := flag.String("tz", "", "time zone for \"today\", e.g. Australia/Sydney (default: system)")
 	cert := flag.String("cert", "", "TLS certificate file (optional)")

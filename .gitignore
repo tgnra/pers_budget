@@ -9,3 +9,4 @@ data/
 budget
 budget.exe
 *.tmp
+dist/

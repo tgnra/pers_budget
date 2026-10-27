@@ -20,12 +20,12 @@ To cross-compile for a server, run e.g. `GOOS=linux GOARCH=arm64 ./build.sh`.
 ## Run
 
 ```
-budget -addr :8080 -data ./data -tz Australia/Sydney
+budget -addr :9312 -data ./data -tz Australia/Sydney
 ```
 
 | flag | default | |
 |---|---|---|
-| `-addr` | `:8080` | listen address |
+| `-addr` | `:9312` | listen address |
 | `-data` | `data` | account JSON files and `.session_key` |
 | `-tz` | system | time zone that decides "today" |
 | `-cert`, `-key` | | serve TLS directly |
