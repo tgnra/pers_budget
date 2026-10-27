@@ -1,0 +1,116 @@
+:root {
+  --bg: #f6f6f3; --fg: #1c1c1a; --mut: #6d6d67; --line: #dcdcd6; --card: #fff;
+  --acc: #1f6f50; --neg: #b3261e; --pos: #1f6f50; --low: #fff0b8; --past: #8a8a84;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141413; --fg: #e6e6e0; --mut: #9a9a92; --line: #31312d; --card: #1d1d1b;
+    --acc: #1f6f50; --neg: #ff8a80; --pos: #6fcf9f; --low: #4a3f12; --past: #77776f;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+a { color: var(--acc); }
+@media (prefers-color-scheme: dark) { a { color: var(--pos); } }
+
+nav {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 4px;
+  background: var(--acc); color: #fff;
+  padding: calc(6px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 6px calc(10px + env(safe-area-inset-left));
+}
+nav b { margin-right: 8px; }
+nav a { color: #d4ebe0; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+nav a.on { background: rgba(255,255,255,.18); color: #fff; }
+nav form { margin: 0; }
+nav .link { background: none; border: 0; color: #d4ebe0; padding: 4px; font: inherit; cursor: pointer; }
+
+main {
+  max-width: 980px; margin: 0 auto;
+  padding: 8px calc(8px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
+}
+.sp { flex: 1; }
+.r { text-align: right; }
+.neg { color: var(--neg); }
+.pos { color: var(--pos); }
+.hint { color: var(--mut); font-size: 12px; }
+.msg, .err { margin: 0 0 8px; padding: 6px 8px; border-radius: 4px; white-space: pre-line; }
+.msg { background: var(--card); border: 1px solid var(--line); }
+.err { background: #fde8e6; color: #8c1d16; border: 1px solid #f3b9b3; }
+
+button, input, select {
+  font: inherit; font-size: 16px; /* 16px stops iOS zooming on focus */
+  color: var(--fg); background: var(--card);
+  border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; min-width: 0;
+}
+button { cursor: pointer; padding: 5px 12px; }
+button:not([type=button]):not(.danger):not(.link):not(.del) { background: var(--acc); border-color: var(--acc); color: #fff; }
+button.danger { color: var(--neg); }
+input:focus, select:focus, button:focus-visible { outline: 2px solid var(--acc); outline-offset: -1px; }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
+
+/* summary */
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sum div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.sum small { display: block; color: var(--mut); font-size: 12px; }
+.sum b { font-size: 20px; }
+
+/* ledger */
+.led { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); }
+.led th { position: sticky; top: calc(38px + env(safe-area-inset-top)); z-index: 1; background: var(--card);
+  text-align: left; font-weight: 600; font-size: 12px; color: var(--mut); border-bottom: 1px solid var(--line); }
+.led th, .led td { padding: 4px 6px; }
+.led td { border-bottom: 1px solid var(--line); vertical-align: top; }
+.led tr[data-kind] { cursor: pointer; }
+.led tr[data-kind]:hover { background: rgba(127,127,127,.08); }
+.led .d { white-space: nowrap; color: var(--mut); }
+.led .r { white-space: nowrap; }
+.led .mh td { background: var(--bg); font-weight: 600; font-size: 12px; padding-top: 8px; }
+.led .past td { color: var(--past); }
+.led .skip td { text-decoration: line-through; color: var(--past); }
+.led .skip .tag { text-decoration: none; }
+.led .low td { background: var(--low); }
+.led .od .bal { color: var(--neg); }
+.led .empty { color: var(--mut); padding: 16px; }
+.tag { font-style: normal; color: var(--mut); font-size: 11px; margin-left: 4px; }
+
+/* dialogs */
+dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg);
+  padding: 12px; width: min(420px, calc(100vw - 24px)); }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+dialog h3 { margin: 0 0 8px; font-size: 16px; }
+dialog label, .login label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--mut); }
+dialog input, .login input { display: block; width: 100%; margin-top: 2px; }
+dialog .hint { margin: 0 0 4px; }
+.login { max-width: 320px; margin: 40px auto; }
+
+/* recurring rows: one line per row on wide screens, wrapped card on phones */
+.rg { display: grid; gap: 4px; align-items: end;
+  grid-template-columns: minmax(120px, 2fr) 1fr 1.1fr 56px 1.3fr 1.3fr 64px 34px; }
+.rg input, .rg select { width: 100%; padding: 4px 5px; }
+.rg label { display: block; min-width: 0; }
+.rg label span { display: none; }
+.rg.hd { font-size: 12px; color: var(--mut); }
+#rows .rg { padding: 3px 0; border-bottom: 1px solid var(--line); }
+.del { padding: 4px 0; width: 100%; color: var(--neg); font-weight: 700; }
+@media (max-width: 760px) {
+  .led th, .led td { padding: 4px 4px; }
+  .rg.hd { display: none; }
+  #rows .rg { padding: 6px 0; grid-template-columns: repeat(6, 1fr) 34px;
+    grid-template-areas: "desc desc desc desc amt amt del" "freq freq every every prio prio ." "start start start end end end ."; }
+  .rg label span { display: block; font-size: 11px; color: var(--mut); }
+  .rg .desc { grid-area: desc; } .rg .amt { grid-area: amt; } .rg .del { grid-area: del; }
+  .rg .freq { grid-area: freq; } .rg .every { grid-area: every; } .rg .prio { grid-area: prio; }
+  .rg .start { grid-area: start; } .rg .end { grid-area: end; }
+}
+@media (max-width: 400px) {
+  .sum b { font-size: 17px; }
+  .led { font-size: 13px; }
+}

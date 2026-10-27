@@ -1,0 +1,38 @@
+{{define "content"}}
+<form method="post" action="/recurring" id="recf">
+  <div class="rg hd">
+    <span>Description</span><span>Amount</span><span>Frequency</span><span>Every</span>
+    <span>Start</span><span>End</span><span>Priority</span><span></span>
+  </div>
+  <div id="rows">{{range .D.Rows}}{{template "rrow" .}}{{end}}</div>
+  <template id="rowtpl">{{template "rrow" .D.Blank}}</template>
+  <div class="bar">
+    <button type="button" id="addrow" title="Add row">+ Add</button>
+    <span class="sp"></span>
+    <button>Save</button>
+  </div>
+</form>
+<p class="hint">
+  Amounts: negative for expenses, positive for income.
+  <b>Monthly</b> keeps the start date's day (clamped to shorter months); <b>Month end</b> is the last day of every month.
+  <b>Every</b> 2 = every 2nd week/month.
+  <b>Priority</b> orders same-day transactions (1 first); blank goes after numbered ones.
+  Changing a series also changes its past occurrences, so reconcile afterwards.
+</p>
+{{end}}
+
+{{define "rrow"}}<div class="rg">
+  <input type="hidden" name="id" value="{{.ID}}">
+  <label class="desc"><span>Description</span><input name="desc" value="{{.Desc}}" required></label>
+  <label class="amt"><span>Amount</span><input name="amount" type="number" step="0.01" value="{{.Amount}}" required></label>
+  <label class="freq"><span>Frequency</span><select name="freq">
+    <option value="monthly"{{if eq .Freq "monthly"}} selected{{end}}>Monthly</option>
+    <option value="monthly-last"{{if eq .Freq "monthly-last"}} selected{{end}}>Month end</option>
+    <option value="weekly"{{if eq .Freq "weekly"}} selected{{end}}>Weekly</option>
+  </select></label>
+  <label class="every"><span>Every</span><input name="interval" type="number" min="1" step="1" value="{{.Interval}}" required></label>
+  <label class="start"><span>Start</span><input name="start" type="date" value="{{.Start}}" required></label>
+  <label class="end"><span>End</span><input name="end" type="date" value="{{.End}}"></label>
+  <label class="prio"><span>Priority</span><input name="prio" type="number" min="1" step="1" value="{{.Prio}}"></label>
+  <button type="button" class="del" title="Remove row">−</button>
+</div>{{end}}

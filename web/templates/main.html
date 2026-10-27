@@ -1,0 +1,75 @@
+{{define "content"}}{{$d := .D}}
+<section class="sum">
+  <div>
+    <small>Today · {{long $d.Today}}</small>
+    <b class="{{if lt $d.TodayBalance 0}}neg{{end}}">{{$d.TodayBalance}}</b>
+  </div>
+  <div>
+    <small>Lowest (12 mo) · {{long $d.LowestDate}}</small>
+    <b class="{{if lt $d.Lowest 0}}neg{{end}}">{{$d.Lowest}}</b>
+  </div>
+</section>
+
+<div class="bar">
+  <button type="button" id="rc-open">Reconcile</button>
+  <button type="button" id="add-tx">+ Transaction</button>
+  <span class="sp"></span>
+  {{if $d.Back}}<a href="/">Hide past</a>{{else}}<a href="/?back=31">Show past month</a>{{end}}
+</div>
+
+<table class="led">
+  <thead><tr><th>Date</th><th>Description</th><th class="r">Amount</th><th class="r">Balance</th></tr></thead>
+  <tbody id="ledger">
+  {{range $d.Months}}
+    <tr class="mh"><td colspan="4">{{.Label}}</td></tr>
+    {{range .Rows}}
+    <tr class="{{.Class}}" data-kind="{{.Kind}}" data-id="{{.ID}}" data-orig="{{if eq .Kind "rec"}}{{.Orig}}{{end}}"
+        data-date="{{.Date}}" data-desc="{{.Desc}}" data-amount="{{plain .Amount}}"
+        data-edited="{{.Edited}}" data-skipped="{{.Skipped}}">
+      <td class="d">{{day .Date}}</td>
+      <td>{{.Desc}}{{if eq .Kind "rec"}}<i class="tag" title="Recurring">↻</i>{{end}}{{if and .Edited (not .Skipped)}}<i class="tag" title="Edited">✎</i>{{end}}{{if .Skipped}}<i class="tag">skipped</i>{{end}}</td>
+      <td class="r {{if lt .Amount 0}}neg{{else}}pos{{end}}">{{.Amount}}</td>
+      <td class="r bal">{{.Balance}}</td>
+    </tr>
+    {{end}}
+  {{else}}
+    <tr><td colspan="4" class="empty">Nothing projected. Add <a href="/recurring">recurring transactions</a>, then reconcile with your bank balance.</td></tr>
+  {{end}}
+  </tbody>
+</table>
+
+<dialog id="ed">
+  <form method="post" action="/entry">
+    <h3 id="ed-title">Edit</h3>
+    <input type="hidden" name="kind">
+    <input type="hidden" name="id">
+    <input type="hidden" name="orig">
+    <input type="hidden" name="back" value="{{$d.Back}}">
+    <label>Date <input type="date" name="date" required></label>
+    <label>Description <input name="desc" required></label>
+    <label>Amount <input type="number" name="amount" step="0.01" required></label>
+    <p class="hint" id="ed-hint"></p>
+    <div class="bar">
+      <button name="action" value="save">Save</button>
+      <button name="action" value="skip" data-for="rec" formnovalidate>Skip</button>
+      <button name="action" value="restore" data-for="edited" formnovalidate>Restore</button>
+      <button name="action" value="delete" data-for="tx-existing" formnovalidate class="danger">Delete</button>
+      <span class="sp"></span>
+      <button type="button" class="close">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="rc">
+  <form method="post" action="/reconcile">
+    <h3>Reconcile</h3>
+    <label>Bank balance now <input type="number" name="balance" step="0.01" required></label>
+    <p class="hint">Projected balance at end of today is {{$d.TodayBalance}}. An adjustment dated today will settle the difference.</p>
+    <div class="bar">
+      <button>Reconcile</button>
+      <span class="sp"></span>
+      <button type="button" class="close">Cancel</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
