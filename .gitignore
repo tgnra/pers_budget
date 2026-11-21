@@ -1,8 +1,4 @@
-# Accounts (plaintext) and the generated hashes are build-time secrets
-accounts.txt
-accounts_gen.go
-
-# Per-account data and session key
+# Budget data
 data/
 
 # Binaries

@@ -14,7 +14,6 @@ import (
 
 type app struct {
 	store   *Store
-	sess    *sessions
 	loc     *time.Location
 	pages   map[string]*template.Template
 	version string
@@ -23,9 +22,9 @@ type app struct {
 
 // page is the data passed to every template; D holds page-specific data.
 type page struct {
-	Title, Page, User, V string
-	Msg, Err             string
-	D                    any
+	Title, Page, V string
+	Msg, Err       string
+	D              any
 }
 
 func (a *app) today() Date { return DateOf(time.Now().In(a.loc)) }
@@ -40,15 +39,11 @@ func (a *app) routes() http.Handler {
 		mux.HandleFunc("GET /"+name, a.serveIcon(name))
 	}
 
-	mux.HandleFunc("GET /login", a.loginPage)
-	mux.HandleFunc("POST /login", a.login)
-	mux.HandleFunc("POST /logout", a.logout)
-
-	mux.HandleFunc("GET /{$}", a.auth(a.mainPage))
-	mux.HandleFunc("POST /entry", a.auth(a.editEntry))
-	mux.HandleFunc("POST /reconcile", a.auth(a.reconcile))
-	mux.HandleFunc("GET /recurring", a.auth(a.recurringPage))
-	mux.HandleFunc("POST /recurring", a.auth(a.saveRecurring))
+	mux.HandleFunc("GET /{$}", a.mainPage)
+	mux.HandleFunc("POST /entry", a.editEntry)
+	mux.HandleFunc("POST /reconcile", a.reconcile)
+	mux.HandleFunc("GET /recurring", a.recurringPage)
+	mux.HandleFunc("POST /recurring", a.saveRecurring)
 	return mux
 }
 
@@ -87,17 +82,6 @@ func (a *app) render(w http.ResponseWriter, name string, p page) {
 	}
 }
 
-func (a *app) auth(h func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		user := a.sess.user(r)
-		if user == "" {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-		h(w, r, user)
-	}
-}
-
 func (a *app) fail(w http.ResponseWriter, err error) {
 	log.Print(err)
 	http.Error(w, "internal error", http.StatusInternalServerError)
@@ -113,33 +97,6 @@ func redirect(w http.ResponseWriter, r *http.Request, target, msg string) {
 		target += sep + "msg=" + url.QueryEscape(msg)
 	}
 	http.Redirect(w, r, target, http.StatusSeeOther)
-}
-
-// ---------------------------------------------------------------- login
-
-func (a *app) loginPage(w http.ResponseWriter, r *http.Request) {
-	if a.sess.user(r) != "" {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-	a.render(w, "login", page{Title: "Sign in"})
-}
-
-func (a *app) login(w http.ResponseWriter, r *http.Request) {
-	user := strings.ToLower(strings.TrimSpace(r.PostFormValue("user")))
-	if !checkLogin(user, r.PostFormValue("password")) {
-		time.Sleep(time.Second)
-		w.WriteHeader(http.StatusUnauthorized)
-		a.render(w, "login", page{Title: "Sign in", Err: "Incorrect username or password.", D: user})
-		return
-	}
-	a.sess.set(w, r, user)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-func (a *app) logout(w http.ResponseWriter, r *http.Request) {
-	a.sess.clear(w)
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // ------------------------------------------------------------ main page
@@ -162,8 +119,8 @@ type mainData struct {
 	Months []month
 }
 
-func (a *app) mainPage(w http.ResponseWriter, r *http.Request, user string) {
-	b, err := a.store.Load(user)
+func (a *app) mainPage(w http.ResponseWriter, r *http.Request) {
+	b, err := a.store.Load()
 	if err != nil {
 		a.fail(w, err)
 		return
@@ -201,12 +158,12 @@ func (a *app) mainPage(w http.ResponseWriter, r *http.Request, user string) {
 		m := &d.Months[len(d.Months)-1]
 		m.Rows = append(m.Rows, rw)
 	}
-	a.render(w, "main", page{Title: "Projection", Page: "main", User: user,
+	a.render(w, "main", page{Title: "Projection", Page: "main",
 		Msg: r.URL.Query().Get("msg"), D: d})
 }
 
 // editEntry handles the edit dialog for both one-offs (kind=tx) and occurrences (kind=rec).
-func (a *app) editEntry(w http.ResponseWriter, r *http.Request, user string) {
+func (a *app) editEntry(w http.ResponseWriter, r *http.Request) {
 	f := r.PostFormValue
 	target := "/"
 	if back, _ := strconv.Atoi(f("back")); back > 0 {
@@ -229,7 +186,7 @@ func (a *app) editEntry(w http.ResponseWriter, r *http.Request, user string) {
 	}
 
 	var msg string
-	err := a.store.Update(user, func(b *Budget) error {
+	err := a.store.Update(func(b *Budget) error {
 		if f("kind") == "rec" {
 			orig, err := ParseDate(f("orig"))
 			if err != nil {
@@ -265,14 +222,14 @@ func (a *app) editEntry(w http.ResponseWriter, r *http.Request, user string) {
 	redirect(w, r, target, msg)
 }
 
-func (a *app) reconcile(w http.ResponseWriter, r *http.Request, user string) {
+func (a *app) reconcile(w http.ResponseWriter, r *http.Request) {
 	bank, err := ParseMoney(r.PostFormValue("balance"))
 	if err != nil {
 		redirect(w, r, "/", "Not reconciled: "+err.Error())
 		return
 	}
 	var diff Money
-	if err := a.store.Update(user, func(b *Budget) error {
+	if err := a.store.Update(func(b *Budget) error {
 		diff = b.Reconcile(a.today(), bank)
 		return nil
 	}); err != nil {
@@ -298,8 +255,8 @@ type recurringData struct {
 	Blank recRow
 }
 
-func (a *app) recurringPage(w http.ResponseWriter, r *http.Request, user string) {
-	b, err := a.store.Load(user)
+func (a *app) recurringPage(w http.ResponseWriter, r *http.Request) {
+	b, err := a.store.Load()
 	if err != nil {
 		a.fail(w, err)
 		return
@@ -318,16 +275,16 @@ func (a *app) recurringPage(w http.ResponseWriter, r *http.Request, user string)
 		}
 		rows = append(rows, rw)
 	}
-	a.renderRecurring(w, user, rows, r.URL.Query().Get("msg"), "")
+	a.renderRecurring(w, rows, r.URL.Query().Get("msg"), "")
 }
 
-func (a *app) renderRecurring(w http.ResponseWriter, user string, rows []recRow, msg, errMsg string) {
+func (a *app) renderRecurring(w http.ResponseWriter, rows []recRow, msg, errMsg string) {
 	blank := recRow{Freq: Monthly, Interval: "1", Start: a.today().String()}
-	a.render(w, "recurring", page{Title: "Recurring", Page: "recurring", User: user,
+	a.render(w, "recurring", page{Title: "Recurring", Page: "recurring",
 		Msg: msg, Err: errMsg, D: recurringData{Rows: rows, Blank: blank}})
 }
 
-func (a *app) saveRecurring(w http.ResponseWriter, r *http.Request, user string) {
+func (a *app) saveRecurring(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -357,7 +314,7 @@ func (a *app) saveRecurring(w http.ResponseWriter, r *http.Request, user string)
 	}
 
 	if len(errs) == 0 {
-		err := a.store.Update(user, func(b *Budget) error { return b.SetRecurring(list) })
+		err := a.store.Update(func(b *Budget) error { return b.SetRecurring(list) })
 		if err == nil {
 			redirect(w, r, "/recurring", "Saved.")
 			return
@@ -365,7 +322,7 @@ func (a *app) saveRecurring(w http.ResponseWriter, r *http.Request, user string)
 		errs = append(errs, err.Error())
 	}
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	a.renderRecurring(w, user, rows, "", strings.Join(errs, "\n"))
+	a.renderRecurring(w, rows, "", strings.Join(errs, "\n"))
 }
 
 func parseRecRow(rw recRow) (Recurring, error) {

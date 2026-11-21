@@ -2,18 +2,12 @@
 
 A small personal-budget web app: recurring transactions, a one-year running-balance
 projection, per-occurrence edits and bank reconciliation. It's a single Go binary with no
-third-party dependencies. Each account's data is kept in `data/<username>.json`.
+third-party dependencies. It has no login and serves a single budget, kept in
+`data/budget.json`.
 
 ## Build
 
-Requires Go 1.24+.
-
-1. `cp accounts.example.txt accounts.txt` and edit it. Each line is `username:password`.
-   The file is git-ignored.
-2. Run `./build.ps1` (Windows) or `./build.sh`.
-   - `go generate` hashes the passwords (PBKDF2-SHA256, 600k iterations) into
-     `accounts_gen.go`, which is also git-ignored. Only the hashes are compiled in.
-   - After any change to `accounts.txt`, rebuild.
+Requires Go 1.24+. Run `./build.ps1` (Windows) or `./build.sh`.
 
 To cross-compile for a server, run e.g. `GOOS=linux GOARCH=arm64 ./build.sh`.
 
@@ -26,13 +20,23 @@ budget -addr :9312 -data ./data -tz Australia/Sydney
 | flag | default | |
 |---|---|---|
 | `-addr` | `:9312` | listen address |
-| `-data` | `data` | account JSON files and `.session_key` |
+| `-data` | `data` | directory holding `budget.json` |
 | `-tz` | system | time zone that decides "today" |
 | `-cert`, `-key` | | serve TLS directly |
 
 Installing as a PWA and the service worker both need HTTPS, except on `localhost`. Either
 pass `-cert/-key` or put the app behind a reverse proxy (Caddy, nginx, Tailscale serve)
 that sets `X-Forwarded-Proto: https`.
+
+Anyone who can reach the port can view and edit the budget, so only expose it on a
+trusted network (e.g. Tailscale) or behind a proxy that does its own authentication.
+
+### Upgrading from the multi-account version
+
+On startup, if `budget.json` doesn't exist and the data directory holds exactly one
+`<username>.json`, it is renamed to `budget.json`. The obsolete `.session_key` is deleted.
+If there are several account files, the app refuses to start: rename the one to keep to
+`budget.json` and move the others out of the directory.
 
 ## Use
 

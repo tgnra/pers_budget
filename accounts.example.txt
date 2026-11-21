@@ -1,6 +1,0 @@
-# Copy to accounts.txt (git-ignored) and edit. One account per line:
-#   username:password
-# Usernames: 1-32 chars of a-z 0-9 _ -  (each gets its own data/<username>.json).
-# Passwords are hashed (PBKDF2-SHA256) into the binary at build time; rebuild after changes.
-alice:change-me
-bob:change-me-too
